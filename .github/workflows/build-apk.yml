@@ -1,0 +1,40 @@
+name: Gerar APK do Media Controller
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Descompactar projeto
+        run: unzip -o MediaController-source.zip -d projeto
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Instalar plataforma e build-tools do Android
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          yes | "$SDKM" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Gerar APK de debug
+        working-directory: projeto
+        run: gradle :app:assembleDebug --no-daemon
+
+      - name: Disponibilizar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MediaController-APK
+          path: projeto/app/build/outputs/apk/debug/app-debug.apk
